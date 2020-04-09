@@ -1074,7 +1074,7 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin):
         unfinished_sents = input_ids.new(batch_size).fill_(1)
         sent_lengths = input_ids.new(batch_size).fill_(max_length)
 
-        past = encoder_outputs  # defined for encoder-decoder models, None for decoder-only models
+        past = (encoder_outputs, None) if encoder_outputs is not None else None  # defined for encoder-decoder models, None for decoder-only models
 
         while cur_len < max_length:
             model_inputs = self.prepare_inputs_for_generation(input_ids, past=past, attention_mask=attention_mask)
@@ -1207,7 +1207,7 @@ class PreTrainedModel(nn.Module, ModuleUtilsMixin):
         beam_scores = beam_scores.view(-1)  # shape (batch_size * num_beams,)
 
         # cache compute states
-        past = encoder_outputs  # defined for encoder-decoder models, None for decoder-only models
+        past = (encoder_outputs, None) if encoder_outputs is not None else None  # defined for encoder-decoder models, None for decoder-only models
 
         # done sentences
         done = [False for _ in range(batch_size)]

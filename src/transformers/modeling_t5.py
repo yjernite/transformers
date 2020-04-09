@@ -900,6 +900,10 @@ class T5Model(T5PreTrainedModel):
     def set_output_past(self, do_output_past: bool):
         self.config.output_past = do_output_past
         self.decoder.output_past = do_output_past
+        for block in self.decoder.block:
+            block.output_past = do_output_past
+            block.layer[0].SelfAttention.output_past = do_output_past
+            block.layer[1].EncDecAttention.output_past = do_output_past
         self.encoder.output_past = do_output_past
 
     def get_encoder(self):
@@ -1020,6 +1024,10 @@ class T5ForConditionalGeneration(T5PreTrainedModel):
     def set_output_past(self, do_output_past: bool):
         self.config.output_past = do_output_past
         self.decoder.output_past = do_output_past
+        for block in self.decoder.block:
+            block.output_past = do_output_past
+            block.layer[0].SelfAttention.output_past = do_output_past
+            block.layer[1].EncDecAttention.output_past = do_output_past
         self.encoder.output_past = do_output_past
 
     def set_input_embeddings(self, new_embeddings):
@@ -1152,10 +1160,11 @@ class T5ForConditionalGeneration(T5PreTrainedModel):
         assert past is not None, "past has to be defined for encoder_outputs"
 
         # first step
-        if len(past) < 2:
-            encoder_outputs, decoder_past_key_value_states = past, None
-        else:
-            encoder_outputs, decoder_past_key_value_states = past[0], past[1]
+        #if len(past) < 2:
+        #    encoder_outputs, decoder_past_key_value_states = past, None
+        #else:
+        #    encoder_outputs, decoder_past_key_value_states = past[0], past[1]
+        encoder_outputs, decoder_past_key_value_states = past[0], past[1]
 
         return {
             "decoder_input_ids": input_ids,
@@ -1171,8 +1180,8 @@ class T5ForConditionalGeneration(T5PreTrainedModel):
             logger.warning("You might want to consider setting model.set_output_past(True) to speed up decoding")
             return past
 
-        decoder_past = past[1]
-        past = (past[0],)
+        encoder_output, decoder_past = past
+
         reordered_decoder_past = ()
         for layer_past_states in decoder_past:
             # get the correct batch idx from layer past batch dim
@@ -1188,4 +1197,5 @@ class T5ForConditionalGeneration(T5PreTrainedModel):
             assert len(reordered_layer_past_states) == len(layer_past_states)
 
             reordered_decoder_past = reordered_decoder_past + (reordered_layer_past_states,)
-        return past + (reordered_decoder_past,)
+
+        return (encoder_output,) + (reordered_decoder_past,)
